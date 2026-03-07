@@ -325,6 +325,4 @@ Replace Random Forest with:
 * LSTM
 * Transformer-based time series models
 
-
-https://github.com/YOUR_USERNAME
 ```
