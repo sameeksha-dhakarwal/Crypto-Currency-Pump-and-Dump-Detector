@@ -2,7 +2,7 @@ import sys
 import os
 import time
 
-# Allow Streamlit to access project modules
+# allow Streamlit to import project modules
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 import streamlit as st
@@ -17,10 +17,12 @@ from ml.feature_engine import compute_features
 from backend.predict import predict_pump
 
 
-# Database connection
+# ===============================
+# DATABASE
+# ===============================
+
 engine = create_engine("sqlite:///crypto.db")
 
-# Coins to monitor
 SYMBOLS = [
     "btcusdt",
     "ethusdt",
@@ -29,20 +31,27 @@ SYMBOLS = [
     "bnbusdt"
 ]
 
-# Page configuration
-st.set_page_config(page_title="Crypto Pump Detector", layout="wide")
 
-st.title("🚨 AI Crypto Pump Monitoring System")
-st.markdown("Real-time pump-and-dump surveillance dashboard")
+# ===============================
+# PAGE CONFIG
+# ===============================
+
+st.set_page_config(
+    page_title="Crypto Pump Detector",
+    layout="wide"
+)
+
+st.title(" AI Crypto Pump Monitoring System")
+st.write("Real-time monitoring for pump-and-dump activity")
 
 st.divider()
 
 
 # ===============================
-# Pump Probability Gauges
+# PUMP PROBABILITY GAUGES
 # ===============================
 
-st.header("Pump Probability Gauges")
+st.header(" Pump Probability")
 
 gauge_cols = st.columns(len(SYMBOLS))
 
@@ -78,15 +87,15 @@ for i, symbol in enumerate(SYMBOLS):
             st.plotly_chart(fig, use_container_width=True)
 
         else:
-            st.write("Collecting data...")
+            st.info("Collecting data...")
 
 
 # ===============================
-# Crypto Market Board
+# CRYPTO MARKET BOARD
 # ===============================
 
 st.divider()
-st.header("Crypto Market Board")
+st.header(" Crypto Market Board")
 
 board_cols = st.columns(len(SYMBOLS))
 
@@ -103,36 +112,44 @@ for i, symbol in enumerate(SYMBOLS):
 
         df = pd.read_sql(query, engine)
 
-        if len(df) > 0:
+        if len(df) > 1:
 
             latest_price = df.iloc[0]["price"]
-            first_price = df.iloc[-1]["price"]
+            old_price = df.iloc[-1]["price"]
 
-            change = (latest_price - first_price) / first_price
+            change = (latest_price - old_price) / old_price
 
-            color = "green" if change > 0 else "red"
+            if change >= 0:
+                color = "#66d494"
+            else:
+                color = "#c24c4c"
 
             st.markdown(
                 f"""
-                <div style="padding:20px;background:{color};color:white;border-radius:10px;text-align:center">
+                <div style="
+                background:{color};
+                padding:20px;
+                border-radius:10px;
+                text-align:center;
+                color:white;">
                 <h3>{symbol.upper()}</h3>
                 <h2>${latest_price:.2f}</h2>
-                <p>{change*100:.2f}%</p>
+                <h4>{change*100:.2f}%</h4>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
 
         else:
-            st.write("Waiting for data")
+            st.write("Waiting for data...")
 
 
 # ===============================
-# Live Price Charts
+# LIVE PRICE CHARTS
 # ===============================
 
 st.divider()
-st.header("Live Price Charts")
+st.header(" Live Price Charts")
 
 chart_cols = st.columns(len(SYMBOLS))
 
@@ -153,22 +170,34 @@ for i, symbol in enumerate(SYMBOLS):
 
             df = df.sort_values("timestamp")
 
+            # convert timestamp for readability
+            df["timestamp"] = pd.to_datetime(df["timestamp"], unit="ms")
+
             fig = px.line(
                 df,
                 x="timestamp",
                 y="price",
-                title=symbol.upper()
+                title=symbol.upper(),
+                markers=False
+            )
+
+            fig.update_layout(
+                height=300,
+                margin=dict(l=10, r=10, t=30, b=10)
             )
 
             st.plotly_chart(fig, use_container_width=True)
 
+        else:
+            st.write("Waiting for chart data...")
+
 
 # ===============================
-# Volume Heatmap
+# VOLUME HEATMAP
 # ===============================
 
 st.divider()
-st.header("Volume Spike Heatmap")
+st.header(" Volume Spike Heatmap")
 
 query = """
 SELECT symbol, quantity FROM trades
@@ -193,11 +222,11 @@ st.pyplot(fig)
 
 
 # ===============================
-# Recent Trades
+# RECENT TRADES
 # ===============================
 
 st.divider()
-st.header("Recent Trades")
+st.header(" Recent Trades")
 
 df = pd.read_sql(
     "SELECT * FROM trades ORDER BY timestamp DESC LIMIT 100",
@@ -208,7 +237,7 @@ st.dataframe(df, use_container_width=True)
 
 
 # ===============================
-# Auto Refresh
+# AUTO REFRESH
 # ===============================
 
 time.sleep(5)
